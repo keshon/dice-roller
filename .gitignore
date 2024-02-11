@@ -5,3 +5,4 @@ melodix.exe
 /.env
 *.upx
 logs/*
+*.exe
