@@ -50,6 +50,23 @@ func (gm *GuildManager) Commands(s *discordgo.Session, m *discordgo.MessageCreat
 		return
 	}
 
+	slog.Info("Command is", command)
+
+	// Check if the command is "roll" or "dice"
+	if command == "roll" || command == "help" || command == "about" {
+		guildID := m.GuildID
+		exists, err := db.DoesGuildExist(guildID)
+		if err != nil {
+			slog.Errorf("Error checking if guild is registered: %v", err)
+			return
+		}
+
+		if !exists {
+			gm.Session.ChannelMessageSend(m.Message.ChannelID, "Guild must be registered first. Use `"+gm.prefix+"register` command.")
+			return
+		}
+	}
+
 	switch command {
 	case "register":
 		gm.handleRegisterCommand(s, m)

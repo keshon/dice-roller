@@ -3,6 +3,7 @@ package discord
 import (
 	"crypto/rand"
 	"fmt"
+	"math"
 	"math/big"
 	"regexp"
 	"strconv"
@@ -24,6 +25,11 @@ func (d *Discord) handleRollCommand(s *discordgo.Session, m *discordgo.MessageCr
 	}
 
 	tokens := tokenize(param)
+
+	if len(tokens) > 10 {
+		s.ChannelMessageSend(m.ChannelID, "Error: You can roll up to 10 dice in a single command.")
+		return
+	}
 
 	totalResult, detailedResults, hasSingleMultiplier, processedKeys, err := processDiceTokens(tokens)
 	if err != nil {
@@ -61,6 +67,10 @@ func processDiceTokens(tokens []string) (int, map[string][]int, bool, []string, 
 			return 0, nil, false, nil, fmt.Errorf("Invalid input. Please use a valid dice expression, e.g., `1d20`.")
 		}
 
+		slog.Infof("[%v] work with token is %v:", i, token)
+		slog.Infof("[%v] ..multiplier for token %v is %v: ", i, token, multiplier)
+		slog.Infof("[%v] ..diceSides for token %v is %v: ", i, token, diceSides)
+
 		if diceSides <= 0 {
 			return 0, nil, false, nil, fmt.Errorf("Invalid input. Dice sides must be greater than zero.")
 		}
@@ -68,6 +78,7 @@ func processDiceTokens(tokens []string) (int, map[string][]int, bool, []string, 
 		results := make([]int, utils.AbsInt(multiplier))
 		for j := 0; j < multiplier; j++ {
 			rollResult, err := secureRandomInt(diceSides)
+
 			if err != nil {
 				slog.Errorf("Error generating secure random number: %v", err)
 				return 0, nil, false, nil, err
@@ -94,25 +105,24 @@ func processDiceTokens(tokens []string) (int, map[string][]int, bool, []string, 
 // secureRandomInt generates a secure random integer between 1 and max (inclusive).
 func secureRandomInt(max int) (int, error) {
 	if max <= 0 {
-		return 0, fmt.Errorf("max must be greater than zero")
+		return 0, nil
 	}
 
-	bits := uint(0)
-	for ; (1 << bits) < max; bits++ {
-	}
-
-	bytesNeeded := (bits + 7) / 8
-	randomBytes := make([]byte, bytesNeeded)
-
-	// Use crypto/rand for secure random bytes
-	_, err := rand.Read(randomBytes)
+	// Generate a random number in the range [0, max-1]
+	randomNum, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
 	if err != nil {
 		return 0, err
 	}
 
-	randomValue := new(big.Int).SetBytes(randomBytes)
+	// Add 1 to make the range [1, max]
+	return int(randomNum.Int64()) + 1, nil
+}
 
-	return int(randomValue.Int64()), nil
+// getRandomDeviation generates a random deviation based on initial velocity, angular velocity, air resistance, mass, and shape factor.
+func getRandomDeviation(initialVelocity, angularVelocity, airResistance, mass, shapeFactor float64) float64 {
+	// Simulate the effect of initial velocity, angular velocity, air resistance, mass, and shape factor on deviation
+	combinedParameter := (math.Pow(initialVelocity, 0.8) * math.Pow(angularVelocity, 0.5) / airResistance) / (mass * shapeFactor)
+	return combinedParameter - 0.5
 }
 
 // tokenize breaks down the input into tokens along with signs.
@@ -130,6 +140,7 @@ func parseToken(token string) (int, int, error) {
 		return 0, 0, fmt.Errorf("Invalid token format")
 	}
 
+	// Parse multiplier
 	multiplier := 1
 	if parts[0] != "" {
 		var err error
@@ -137,11 +148,22 @@ func parseToken(token string) (int, int, error) {
 		if err != nil {
 			return 0, 0, fmt.Errorf("Invalid multiplier in token: %s", token)
 		}
+
+		// Check for a reasonable range for multiplier (adjust the limit as needed)
+		if multiplier <= 0 || multiplier > 10 {
+			return 0, 0, fmt.Errorf("Multiplier should be between 1 and 10")
+		}
 	}
 
+	// Parse dice sides
 	diceSides, err := strconv.Atoi(parts[1])
 	if err != nil {
 		return 0, 0, fmt.Errorf("Invalid dice sides in token: %s", token)
+	}
+
+	// Check for a reasonable range for dice sides (adjust the limit as needed)
+	if diceSides <= 0 || diceSides > 100 {
+		return 0, 0, fmt.Errorf("Dice sides should be between 1 and 100")
 	}
 
 	return multiplier, diceSides, nil
