@@ -1,8 +1,9 @@
 package discord
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"regexp"
 	"strconv"
 	"strings"
@@ -18,72 +19,26 @@ import (
 func (d *Discord) handleRollCommand(s *discordgo.Session, m *discordgo.MessageCreate, param string) {
 	d.changeAvatar(s)
 
-	slog.Warn("user input is", param)
-
-	// Tokenization logic
-	tokens := tokenize(param)
-
-	slog.Warn("all tokens are", tokens)
-
-	// Initialize variables for the rolling logic
-	totalResult := 0
-	detailedResults := make(map[string][]int)
-	processedKeys := []string{} // Keep track of processed keys
-	isOneMultiplier := true
-
-	// Rolling logic
-	for i, token := range tokens {
-		// Parse each token
-		multiplier, diceSides, err := parseToken(token)
-
-		slog.Infof("[%v] work with token is %v:", i, token)
-		slog.Infof("[%v] ..multiplier for token %v is %v: ", i, token, multiplier)
-		slog.Infof("[%v] ..diceSides for token %v is %v: ", i, token, diceSides)
-
-		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, "Invalid input. Please use a valid dice expression, e.g., `1d20`.")
-			return
-		}
-
-		// Check for valid dice sides
-		if diceSides <= 0 {
-			s.ChannelMessageSend(m.ChannelID, "Invalid input. Dice sides must be greater than zero.")
-			return
-		}
-
-		// Roll the dice
-		results := make([]int, utils.AbsInt(multiplier))
-		for j := 0; j < multiplier; j++ {
-			rollResult := rand.Intn(diceSides) + 1
-			slog.Infof("[%v] ..rolled value is %v\n", i, rollResult)
-			results[j] = rollResult
-			totalResult += rollResult
-		}
-
-		// Store detailed results
-		key := fmt.Sprintf("%dd%d", multiplier, diceSides)
-		detailedResults[key] = results
-		processedKeys = append(processedKeys, key)
-
-		if multiplier > 1 {
-			isOneMultiplier = false
-		}
+	if param == "" {
+		param = "1d20"
 	}
 
-	// Sending result to the Discord channel
+	tokens := tokenize(param)
+
+	totalResult, detailedResults, hasSingleMultiplier, processedKeys, err := processDiceTokens(tokens)
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Error: %v", err))
+		return
+	}
+
 	embedMsg := embed.NewEmbed().
 		SetTitle(fmt.Sprintf("= %d", totalResult)).
-		// SetDescription(fmt.Sprintf("Roll for`%s`:\n", param)).
-		// SetFooter(fmt.Sprintf("Roll for %s:\n", param)).
 		SetColor(0x9f00d4)
 
-	// Formatting detailed results in the correct order
 	for _, key := range processedKeys {
 		results := detailedResults[key]
 
-		// Check if only one dice was requested and multiplier is also 1
-		if len(tokens) == 1 && isOneMultiplier {
-			// If only one dice with multiplier 1, don't include the value in the field
+		if len(processedKeys) == 1 && hasSingleMultiplier {
 			embedMsg.AddField("", "`"+key+"`").MakeFieldInline()
 		} else {
 			embedMsg.AddField(fmt.Sprintf("(%s)\n", strings.Trim(strings.Join(strings.Fields(fmt.Sprint(results)), " + "), "[]")), "`"+key+"`").MakeFieldInline()
@@ -93,15 +48,78 @@ func (d *Discord) handleRollCommand(s *discordgo.Session, m *discordgo.MessageCr
 	s.ChannelMessageSendEmbed(m.ChannelID, embedMsg.MessageEmbed)
 }
 
+// processDiceTokens processes the tokens and returns the total result, detailed results, and processed keys.
+func processDiceTokens(tokens []string) (int, map[string][]int, bool, []string, error) {
+	totalResult := 0
+	detailedResults := make(map[string][]int)
+	processedKeys := []string{}
+	hasSingleMultiplier := true
+
+	for i, token := range tokens {
+		multiplier, diceSides, err := parseToken(token)
+		if err != nil {
+			return 0, nil, false, nil, fmt.Errorf("Invalid input. Please use a valid dice expression, e.g., `1d20`.")
+		}
+
+		if diceSides <= 0 {
+			return 0, nil, false, nil, fmt.Errorf("Invalid input. Dice sides must be greater than zero.")
+		}
+
+		results := make([]int, utils.AbsInt(multiplier))
+		for j := 0; j < multiplier; j++ {
+			rollResult, err := secureRandomInt(diceSides)
+			if err != nil {
+				slog.Errorf("Error generating secure random number: %v", err)
+				return 0, nil, false, nil, err
+			}
+
+			results[j] = rollResult
+			totalResult += rollResult
+		}
+
+		key := fmt.Sprintf("%dd%d", multiplier, diceSides)
+		detailedResults[key] = results
+		processedKeys = append(processedKeys, key)
+
+		if multiplier > 1 {
+			hasSingleMultiplier = false
+		}
+
+		slog.Infof("[%v] ..rolled values are %v\n", i, results)
+	}
+
+	return totalResult, detailedResults, hasSingleMultiplier, processedKeys, nil
+}
+
+// secureRandomInt generates a secure random integer between 1 and max (inclusive).
+func secureRandomInt(max int) (int, error) {
+	if max <= 0 {
+		return 0, fmt.Errorf("max must be greater than zero")
+	}
+
+	bits := uint(0)
+	for ; (1 << bits) < max; bits++ {
+	}
+
+	bytesNeeded := (bits + 7) / 8
+	randomBytes := make([]byte, bytesNeeded)
+
+	// Use crypto/rand for secure random bytes
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		return 0, err
+	}
+
+	randomValue := new(big.Int).SetBytes(randomBytes)
+
+	return int(randomValue.Int64()), nil
+}
+
 // tokenize breaks down the input into tokens along with signs.
 func tokenize(input string) []string {
-	// Define regular expression to split input based on delimiters
 	delimiters := `[^0-9d]+`
 	r := regexp.MustCompile(delimiters)
-
-	// Use regular expression to split input based on delimiters
 	tokens := r.Split(input, -1)
-
 	return tokens
 }
 
@@ -114,10 +132,17 @@ func parseToken(token string) (int, int, error) {
 
 	multiplier := 1
 	if parts[0] != "" {
-		multiplier, _ = strconv.Atoi(parts[0])
+		var err error
+		multiplier, err = strconv.Atoi(parts[0])
+		if err != nil {
+			return 0, 0, fmt.Errorf("Invalid multiplier in token: %s", token)
+		}
 	}
 
-	diceSides, _ := strconv.Atoi(parts[1])
+	diceSides, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return 0, 0, fmt.Errorf("Invalid dice sides in token: %s", token)
+	}
 
 	return multiplier, diceSides, nil
 }

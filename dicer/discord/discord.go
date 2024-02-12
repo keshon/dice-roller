@@ -71,7 +71,8 @@ func (d *Discord) Commands(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	commandAliases := [][]string{
 		{"roll", "r"},
-		{"about", "version", "v"},
+		{"help", "h"},
+		{"about", "a"},
 	}
 
 	canonicalCommand := getCanonicalCommand(command, commandAliases)
@@ -85,8 +86,11 @@ func (d *Discord) Commands(s *discordgo.Session, m *discordgo.MessageCreate) {
 	switch canonicalCommand {
 	case "roll":
 		d.handleRollCommand(s, m, parameter)
+	case "help":
+		d.handleHelpCommand(s, m)
 	case "about":
 		d.handleAboutCommand(s, m)
+
 	default:
 		// Unknown command
 	}
@@ -94,6 +98,10 @@ func (d *Discord) Commands(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 // parseCommand parses the command and parameter from the Discord input based on the provided pattern.
 func parseCommand(content, pattern string) (string, string, error) {
+	// Convert both content and pattern to lowercase for case-insensitive comparison
+	content = strings.ToLower(content)
+	pattern = strings.ToLower(pattern)
+
 	if !strings.HasPrefix(content, pattern) {
 		return "", "", fmt.Errorf("pattern not found")
 	}
@@ -105,7 +113,7 @@ func parseCommand(content, pattern string) (string, string, error) {
 		return "", "", fmt.Errorf("no command found")
 	}
 
-	command := strings.ToLower(words[0])
+	command := words[0]
 	parameter := ""
 	if len(words) > 1 {
 		parameter = strings.Join(words[1:], " ")
