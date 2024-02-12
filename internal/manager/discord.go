@@ -46,11 +46,9 @@ func (gm *GuildManager) Start() {
 func (gm *GuildManager) Commands(s *discordgo.Session, m *discordgo.MessageCreate) {
 	command, _, err := parseCommand(m.Message.Content, gm.prefix)
 	if err != nil {
-		// slog.Info(err)
+		slog.Error(err)
 		return
 	}
-
-	slog.Info("Command is", command)
 
 	// Check if the command is "roll" or "dice"
 	if command == "roll" || command == "help" || command == "about" {
