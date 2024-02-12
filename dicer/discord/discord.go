@@ -103,14 +103,14 @@ func parseCommand(content, pattern string) (string, string, error) {
 	pattern = strings.ToLower(pattern)
 
 	if !strings.HasPrefix(content, pattern) {
-		return "", "", fmt.Errorf("pattern not found")
+		return "", "", fmt.Errorf("Pattern not found")
 	}
 
 	content = content[len(pattern):] // Strip the pattern
 
 	words := strings.Fields(content) // Split by whitespace, handling multiple spaces
 	if len(words) == 0 {
-		return "", "", fmt.Errorf("no command found")
+		return "", "", fmt.Errorf("No command found")
 	}
 
 	command := words[0]

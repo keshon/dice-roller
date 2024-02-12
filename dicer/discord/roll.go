@@ -27,7 +27,7 @@ func (d *Discord) handleRollCommand(s *discordgo.Session, m *discordgo.MessageCr
 	tokens := tokenize(param)
 
 	if len(tokens) > 10 {
-		s.ChannelMessageSend(m.ChannelID, "Error: You can roll up to 10 dice in a single command.")
+		s.ChannelMessageSend(m.ChannelID, "Error: you can roll up to 10 dice in a single command.")
 		return
 	}
 
@@ -64,7 +64,7 @@ func processDiceTokens(tokens []string) (int, map[string][]int, bool, []string, 
 	for i, token := range tokens {
 		multiplier, diceSides, err := parseToken(token)
 		if err != nil {
-			return 0, nil, false, nil, fmt.Errorf("Invalid input. Please use a valid dice expression, e.g., `1d20`.")
+			return 0, nil, false, nil, fmt.Errorf("invalid input. %v", err)
 		}
 
 		slog.Infof("[%v] work with token is %v:", i, token)
