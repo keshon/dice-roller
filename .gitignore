@@ -1,8 +1,7 @@
 /.VSCodeCounter
-main.exe
-melodix.exe
+
 *.db
-/.env
+.env
 *.upx
 logs/*
-*.exe
+/*.exe
