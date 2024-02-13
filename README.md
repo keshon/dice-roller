@@ -49,8 +49,8 @@ Dicer Roller supports various commands with their respective aliases for conveni
 Commands should be prefixed with `dice` by default. For instance, `dice roll`, `dice help`, and so on.
 
 To use the `roll` command, provide a valid dice expression as a parameter, e.g.:
-`!roll 2d6` 
-`!roll 1d20 2d6` (sum of 1 * 20 + 2 * 6) 
+`dice roll 2d6` 
+`dice roll 1d20 2d6` (sum of 1 * 20 + 2 * 6) 
 
 ## Where to get support
 
