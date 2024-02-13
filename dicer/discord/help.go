@@ -47,7 +47,7 @@ func (d *Discord) handleHelpCommand(s *discordgo.Session, m *discordgo.MessageCr
 		AddField("", "").
 		AddField("", "*General*\n"+help+about).
 		AddField("", "").
-		AddField("", "*Adinistration*\n"+register+unregister).
+		AddField("", "*Administration*\n"+register+unregister).
 		SetThumbnail(avatarUrl). // TODO: move out to config .env file
 		SetColor(0x9f00d4).SetFooter(version.AppFullName).MessageEmbed
 
