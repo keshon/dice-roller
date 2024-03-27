@@ -7,7 +7,7 @@ import (
 	dicer "github.com/keshon/dice-roller/mod-dicer/discord"
 )
 
-var Modules = []string{"hi", "hello", "about"}
+var Modules = []string{"about", "dicer"}
 
 // CreateBotInstance creates a new bot instance based on the module name.
 //

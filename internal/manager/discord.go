@@ -56,7 +56,7 @@ func (gm *GuildManager) Commands(s *discordgo.Session, m *discordgo.MessageCreat
 	}
 
 	switch command {
-	case "hi", "hello", "about", "a", "help", "h":
+	case "about", "v", "help", "h", "roll":
 		guildID := m.GuildID
 		exists, err := db.DoesGuildExist(guildID)
 		if err != nil {

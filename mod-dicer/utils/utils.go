@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 // FormatDuration formats the given seconds into HH:MM:SS format.
@@ -72,31 +73,59 @@ func parseFloat(s string) float64 {
 	return val
 }
 
-// GetRandomImagePathFromPath returns the path to a randomly selected file in the specified folder.
-// Example: imagePath, err := GetRandomImagePathFromPath("/path/to/images")
-func GetRandomImagePathFromPath(folderPath string) (string, error) {
-	var validFiles []string
+// GetWeightedRandomImagePath returns a random image path with reduced chances for recently shown images.
+func GetWeightedRandomImagePath(folderPath string) (string, error) {
 	files, err := os.ReadDir(folderPath)
 	if err != nil {
 		return "", err
 	}
 
-	// Filter only files with certain extensions (you can modify this if needed)
+	var images []string
+	var weights []int
+
 	for _, file := range files {
-		if ext := filepath.Ext(file.Name()); ext == ".jpg" || ext == ".png" {
-			validFiles = append(validFiles, file.Name())
+		if file.IsDir() {
+			continue
+		}
+		ext := strings.ToLower(filepath.Ext(file.Name()))
+		if ext == ".jpg" || ext == ".jpeg" || ext == ".png" {
+			images = append(images, file.Name())
+			weights = append(weights, 1) // Initial weight for each image is 1
 		}
 	}
 
-	if len(validFiles) == 0 {
+	if len(images) == 0 {
 		return "", fmt.Errorf("no valid images found")
 	}
 
-	// Get a random index
-	randomIndex := rand.Intn(len(validFiles))
-	randomImage := validFiles[randomIndex]
-	imagePath := filepath.Join(folderPath, randomImage)
+	totalWeights := len(images) // Initial total weights equal to the number of images
 
+	randomWeight := rand.Intn(totalWeights)
+
+	index := -1
+	for i, weight := range weights {
+		if randomWeight < weight {
+			index = i
+			break
+		}
+		randomWeight -= weight
+	}
+
+	if index == -1 {
+		return "", fmt.Errorf("error selecting random image")
+	}
+
+	// Decrease the weight of the recently selected image
+	weights[index] = weights[index] / 2
+
+	// Increase the weight of all other images
+	for i := range weights {
+		if i != index {
+			weights[i] = weights[i] * 2
+		}
+	}
+
+	imagePath := filepath.Join(folderPath, images[index])
 	return imagePath, nil
 }
 

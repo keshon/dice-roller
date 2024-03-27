@@ -74,8 +74,6 @@ func (d *Discord) Commands(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	commandAliases := [][]string{
 		{"roll", "r"},
-		{"help", "h"},
-		{"about", "a"},
 	}
 
 	canonicalCommand := getCanonicalCommand(command, commandAliases)
@@ -121,7 +119,27 @@ func parseCommand(content, pattern string) (string, string, error) {
 	return command, parameter, nil
 }
 
-// getCanonicalCommand gets the canonical command from aliases using the given alias.
+func parseCommandAndParameter(content, pattern string) (string, string, error) {
+	if !strings.HasPrefix(content, pattern) {
+		return "", "", fmt.Errorf("pattern not found")
+	}
+
+	content = content[len(pattern):]
+
+	words := strings.Fields(content)
+	if len(words) == 0 {
+		return "", "", fmt.Errorf("no command found")
+	}
+
+	command := strings.ToLower(words[0])
+	parameter := ""
+	if len(words) > 1 {
+		parameter = strings.Join(words[1:], " ")
+		parameter = strings.TrimSpace(parameter)
+	}
+	return command, parameter, nil
+}
+
 func getCanonicalCommand(alias string, commandAliases [][]string) string {
 	for _, aliases := range commandAliases {
 		for _, a := range aliases {
@@ -133,15 +151,13 @@ func getCanonicalCommand(alias string, commandAliases [][]string) string {
 	return ""
 }
 
-// changeAvatar changes bot avatar with randomly picked avatar image within allowed rate limit
 func (d *Discord) changeAvatar(s *discordgo.Session) {
-	// Check if the rate limit duration has passed since the last execution
 	if time.Since(d.lastChangeAvatarTime) < d.rateLimitDuration {
-		slog.Info("Rate-limited. Skipping changeAvatar.")
+		//slog.Info("Rate-limited. Skipping changeAvatar.")
 		return
 	}
 
-	imgPath, err := utils.GetRandomImagePathFromPath("./assets/avatars")
+	imgPath, err := utils.GetWeightedRandomImagePath("./assets/avatars")
 	if err != nil {
 		slog.Errorf("Error getting avatar path: %v", err)
 		return
@@ -159,15 +175,5 @@ func (d *Discord) changeAvatar(s *discordgo.Session) {
 		return
 	}
 
-	// Update the last execution time
 	d.lastChangeAvatarTime = time.Now()
-}
-
-func findUserVoiceState(userID string, voiceStates []*discordgo.VoiceState) (*discordgo.VoiceState, bool) {
-	for _, vs := range voiceStates {
-		if vs.UserID == userID {
-			return vs, true
-		}
-	}
-	return nil, false
 }
