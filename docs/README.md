@@ -19,9 +19,9 @@ Commands should be prefixed with `dice ` by default. For instance, `dice roll`, 
 
 ## Examples
 To use the `roll` command, provide a valid dice expression as a parameter, e.g.:
-`dice roll` - roll 1d20 by default and print result
-`dice roll 2d20` - roll one 20 sided dice 2 times and print total summ
-`go roll 1d20 2d4` - roll one 20 sided dice, two 4 sided dices and print total summ
+- `dice roll` - roll 1d20 by default and print result
+- `dice roll 2d20` - roll one 20 sided dice 2 times and print total summ
+- `go roll 1d20 2d4` - roll one 20 sided dice, two 4 sided dices and print total summ
 
 ### Adding the Bot to a Discord Server
 
