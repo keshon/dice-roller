@@ -1,4 +1,4 @@
-# Dice Roller Deployment
+# Docker Deployment
 
 The deployment is organized with Docker Compose, allowing for simple and extended deployment options. The extended deployment includes Traefik for proxy support.
 
@@ -7,7 +7,7 @@ The deployment is organized with Docker Compose, allowing for simple and extende
 Before you proceed, ensure you have the following prerequisites:
 
 - Docker and Docker Compose installed
-- Git (if you intend to pull the Dice Roller source code from a Git repository)
+- Git (if you intend to pull the source code from a Git repository)
 - A Discord bot token acquired from the Discord Developer Portal
 - Traefik proxy is set up and ready (optional).
 
@@ -30,7 +30,7 @@ If you intend to use Traefik for proxy support, make sure that Traefik is proper
 
 ### Simple Deployment
 
-To deploy Dice Roller without Traefik and with the simple configuration, run:
+To deploy the app without Traefik and with the simple configuration, run:
 
 ```bash
 docker-compose -f docker-compose.yml up -d
@@ -38,7 +38,7 @@ docker-compose -f docker-compose.yml up -d
 
 ### Extended Deployment with Traefik
 
-To deploy Dice Roller with Traefik for proxy support, use the `docker-compose.traefik.yml` file:
+To deploy the app with Traefik for proxy support, use the `docker-compose.traefik.yml` file:
 
 ```bash
 docker-compose -f docker-compose.yml -f docker-compose.traefik.yml up -d
