@@ -10,7 +10,7 @@ RUN GO_VERSION=$(go version | awk '{print $3}') && \
     BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") && \
     CGO_ENABLED=1 && \
     rm -f .env && \
-    go build -o app -ldflags "-X 'github.com/keshon/dice-roller/internal/version.BuildDate=${BUILD_DATE}' -X 'github.com/keshon/dice-roller/internal/version.GoVersion=${GO_VERSION}'" cmd/dbt/dbt.go && \
+    go build -o app -ldflags "-X 'github.com/keshon/dice-roller/internal/version.BuildDate=${BUILD_DATE}' -X 'github.com/keshon/dice-roller/internal/version.GoVersion=${GO_VERSION}'" cmd/diceroller/diceroller.go && \
     touch database.db && \
     apk del build-base && \
     rm -rf /var/cache/apk/* && \
@@ -19,13 +19,10 @@ RUN GO_VERSION=$(go version | awk '{print $3}') && \
 # Second stage: create the final image
 FROM alpine:3.17
 
-COPY --from=build /usr/project/app /usr/project/app
-COPY --from=build /usr/project/database.db /usr/project/database.db
+RUN apk update
+
+COPY --from=build /usr/project /usr/project
 
 WORKDIR /usr/project
 
-# Use a smaller base image
-FROM scratch
-
-# Set the entrypoint to run the app
 ENTRYPOINT ["/usr/project/app"]
